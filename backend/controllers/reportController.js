@@ -4,7 +4,13 @@ const extractPdfText = require("../services/pdfService");
 const extractImageText = require("../services/ocrService");
 const analyzeReport = require("../services/aiService");
 const askReportQuestion = require("../services/chatService");
-const { askQuestion: askRagQuestion, isRAGReady } = require("../services/ragService");
+const {
+  askQuestion: askRagQuestion,
+  isRAGReady,
+  indexKnowledgeBase,
+  getKnowledgeBaseStatus,
+} = require("../services/ragService");
+const { buildMedicalResponse } = require("../utils/medicalSafety");
 
 const includeErrorDetails = process.env.NODE_ENV !== "production";
 
@@ -32,6 +38,24 @@ const handleUserQuery = async (req, res) => {
   } catch (error) {
     console.error("CRASH IN handleUserQuery:", error);
     res.status(500).json(errorResponse("Unable to query the knowledge base right now.", error));
+  }
+};
+
+const getKnowledgeBase = async (req, res) => {
+  res.status(200).json({ success: true, status: getKnowledgeBaseStatus() });
+};
+
+const syncKnowledgeBase = async (req, res) => {
+  try {
+    const status = await indexKnowledgeBase({ force: true });
+    res.status(200).json({
+      success: true,
+      message: "Knowledge base synced successfully.",
+      status,
+    });
+  } catch (error) {
+    console.error("CRASH IN syncKnowledgeBase:", error);
+    res.status(500).json(errorResponse("Unable to sync the knowledge base right now.", error));
   }
 };
 
@@ -115,9 +139,15 @@ const chatWithReport = async (req, res) => {
       return res.status(400).json({ message: "Question is required" });
     }
 
-    const answer = await askReportQuestion(report.extractedText, question, language || "English");
+    const reportAnswer = await askReportQuestion(report, question, language || "English");
+    const answer = buildMedicalResponse(
+      reportAnswer.answer,
+      question,
+      reportAnswer.medicalContext || "report_interpretation",
+      { followUpQuestions: reportAnswer.followUpQuestions || [] }
+    );
 
-    report.chatHistory.push({ question, answer });
+    report.chatHistory.push({ question, answer: reportAnswer.answer });
     await report.save();
 
     res.status(200).json({ answer });
@@ -146,4 +176,6 @@ module.exports = {
   getReportById,
   chatWithReport,
   getChatHistory,
+  getKnowledgeBase,
+  syncKnowledgeBase,
 };

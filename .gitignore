@@ -1,2 +1,4 @@
 backend/.env
 backend/node_modules/
+backend/.rag-cache/
+.DS_Store

@@ -1,21 +1,55 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import Auth from './Auth'; 
 import { 
   UploadCloud, MessageSquare, FileText, Activity, 
-  LayoutDashboard, Settings, Search, Send, Loader2, CheckCircle, LogOut
+  LayoutDashboard, Settings, Search, Send, Loader2, CheckCircle, LogOut, RefreshCw, Database
 } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:5003';
 
-function formatAnswer(answer) {
+function formatAnswer(answer, options = {}) {
+  const { includeDisclaimer = true } = options;
+
   if (typeof answer === 'string') return answer;
 
   if (answer?.answer) {
-    const parts = [answer.answer];
+    const parts = [];
+    if (answer.medicalContext === 'report_interpretation') {
+      parts.push('Mode: Report interpretation');
+    } else if (answer.medicalContext === 'educational_info') {
+      parts.push('Mode: Educational information');
+    } else if (answer.medicalContext === 'mixed') {
+      parts.push('Mode: Report interpretation + educational information');
+    } else if (answer.medicalContext === 'out_of_scope') {
+      parts.push('Mode: Outside report scope');
+    } else if (answer.medicalContext === 'safety_refusal') {
+      parts.push('Mode: Safety refusal');
+    }
 
-    if (answer.disclaimer) {
+    parts.push(answer.answer);
+
+    if (answer.emergencyWarning) {
+      parts.push(answer.emergencyWarning);
+    }
+
+    if (answer.knowledgeBaseNotice) {
+      parts.push(answer.knowledgeBaseNotice);
+    }
+
+    if (Array.isArray(answer.citations) && answer.citations.length > 0) {
+      const citations = answer.citations
+        .map((item, index) => {
+          const page = item.page ? `, page ${item.page}` : '';
+          const score = typeof item.score === 'number' ? ` (${Math.round(item.score * 100)}% match)` : '';
+          return `${index + 1}. ${item.source || 'Knowledge base'}${page}${score}`;
+        })
+        .join('\n');
+      parts.push(`Sources:\n${citations}`);
+    }
+
+    if (answer.disclaimer && includeDisclaimer) {
       parts.push(answer.disclaimer);
     }
 
@@ -31,6 +65,13 @@ function formatAnswer(answer) {
 
 function getApiErrorMessage(error) {
   return error.response?.data?.details || error.response?.data?.message || error.message;
+}
+
+function getKnowledgeReadinessLabel(status) {
+  if (!status) return 'Checking';
+  if (status.ready) return 'Ready';
+  if (status.chunkCount === 0) return 'Syncing';
+  return 'Not Ready';
 }
 
 axios.interceptors.request.use((config) => {
@@ -62,11 +103,35 @@ function Dashboard({ setToken }) {
   const [isQuerying, setIsQuerying] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null);
+  const [hasShownMedicalDisclaimer, setHasShownMedicalDisclaimer] = useState(false);
+  const [knowledgeStatus, setKnowledgeStatus] = useState(null);
+  const [isRefreshingKnowledge, setIsRefreshingKnowledge] = useState(false);
+  const [isSyncingKnowledge, setIsSyncingKnowledge] = useState(false);
   
   // FIXED: New state to hold the uploaded report's database ID
   const [currentReportId, setCurrentReportId] = useState(null);
   
   const fileInputRef = useRef(null);
+
+  const refreshKnowledgeStatus = async () => {
+    setIsRefreshingKnowledge(true);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/reports/knowledge-base/status`);
+      setKnowledgeStatus(response.data.status);
+    } catch (error) {
+      setKnowledgeStatus({
+        ready: false,
+        provider: 'knowledge_base',
+        lastError: getApiErrorMessage(error),
+      });
+    } finally {
+      setIsRefreshingKnowledge(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshKnowledgeStatus();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('medinsight_token');
@@ -94,6 +159,7 @@ function Dashboard({ setToken }) {
       if (reportId) {
         setCurrentReportId(reportId);
       }
+      setHasShownMedicalDisclaimer(false);
 
       setChatHistory(prev => [...prev, { role: 'ai', content: `I've successfully processed "${file.name}". You can now ask me questions about it!` }]);
     } catch (error) {
@@ -102,6 +168,27 @@ function Dashboard({ setToken }) {
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSyncKnowledgeBase = async () => {
+    setIsSyncingKnowledge(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/reports/knowledge-base/sync`, {});
+      setKnowledgeStatus(response.data.status);
+      setChatHistory(prev => [...prev, {
+        role: 'ai',
+        content: 'Knowledge base synced successfully.',
+      }]);
+    } catch (error) {
+      const message = getApiErrorMessage(error);
+      setChatHistory(prev => [...prev, {
+        role: 'ai',
+        content: `Knowledge base sync failed. ${message}`,
+      }]);
+      await refreshKnowledgeStatus();
+    } finally {
+      setIsSyncingKnowledge(false);
     }
   };
 
@@ -128,7 +215,15 @@ function Dashboard({ setToken }) {
         });
       }
       
-      setChatHistory(prev => [...prev, { role: 'ai', content: formatAnswer(response.data.answer) }]);
+      const answer = response.data.answer;
+      const shouldShowDisclaimer = Boolean(answer?.disclaimer) && !hasShownMedicalDisclaimer;
+      setChatHistory(prev => [...prev, {
+        role: 'ai',
+        content: formatAnswer(answer, { includeDisclaimer: shouldShowDisclaimer }),
+      }]);
+      if (shouldShowDisclaimer) {
+        setHasShownMedicalDisclaimer(true);
+      }
     } catch (error) {
       console.error("Error asking AI:", error);
       if (error.response && error.response.status === 401) {
@@ -193,16 +288,52 @@ function Dashboard({ setToken }) {
 
               <div className="bg-gradient-to-br from-amber-900 to-amber-800 rounded-2xl p-6 text-white shadow-md relative overflow-hidden shrink-0">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3"></div>
-                <h3 className="font-medium text-stone-200 mb-1">Knowledge Base Status</h3>
-                <div className="text-3xl font-bold mb-4">Ready</div>
-                <div className="text-sm text-stone-200 flex items-center"><span className="w-2 h-2 rounded-full bg-amber-400 mr-2 shadow-[0_0_8px_rgba(251,191,36,0.8)] animate-pulse"></span>RAG Pipeline Active</div>
+                <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
+                  <div>
+                    <h3 className="font-medium text-stone-200 mb-1">Knowledge Base Status</h3>
+                    <div className="text-3xl font-bold">{getKnowledgeReadinessLabel(knowledgeStatus)}</div>
+                  </div>
+                  <Database size={24} className="text-amber-200 shrink-0" />
+                </div>
+                <div className="space-y-2 text-sm text-stone-100 relative z-10">
+                  <div className="flex items-center">
+                    <span className={`w-2 h-2 rounded-full mr-2 ${knowledgeStatus?.ready ? 'bg-emerald-300 animate-pulse' : 'bg-amber-300'}`}></span>
+                    {knowledgeStatus?.provider === 'pinecone' ? 'Vector knowledge base' : 'Local knowledge base'}
+                  </div>
+                  {knowledgeStatus?.chunkCount !== null && knowledgeStatus?.chunkCount !== undefined && (
+                    <div className="text-stone-200">Sources indexed: {knowledgeStatus.chunkCount}</div>
+                  )}
+                  {knowledgeStatus?.lastError && (
+                    <div className="text-red-100 text-xs leading-relaxed">{knowledgeStatus.lastError}</div>
+                  )}
+                </div>
+                <div className="mt-5 flex gap-2 relative z-10">
+                  <button
+                    type="button"
+                    onClick={refreshKnowledgeStatus}
+                    disabled={isRefreshingKnowledge || isSyncingKnowledge}
+                    className="flex items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-medium text-white hover:bg-white/15 disabled:opacity-60"
+                  >
+                    {isRefreshingKnowledge ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                    Refresh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSyncKnowledgeBase}
+                    disabled={isRefreshingKnowledge || isSyncingKnowledge}
+                    className="flex items-center justify-center gap-2 rounded-lg bg-white text-amber-950 px-3 py-2 text-xs font-semibold hover:bg-amber-50 disabled:opacity-60"
+                  >
+                    {isSyncingKnowledge ? <Loader2 size={14} className="animate-spin" /> : <Database size={14} />}
+                    Sync
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="w-full lg:w-2/3 bg-white rounded-2xl shadow-sm border border-stone-200 flex flex-col overflow-hidden">
               <div className="p-5 border-b border-stone-100 bg-stone-50/50 flex justify-between items-center">
                 <div><h2 className="text-base font-semibold text-stone-800">AI Assistant</h2></div>
-                <div className="px-3 py-1 bg-white border border-stone-200 rounded-full text-xs font-medium text-stone-600 shadow-sm flex items-center gap-2"><span className="w-1.5 h-1.5 bg-amber-800 rounded-full animate-pulse"></span>Gemini 2.5 Flash</div>
+                <div className="px-3 py-1 bg-white border border-stone-200 rounded-full text-xs font-medium text-stone-600 shadow-sm flex items-center gap-2"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>Gemini 3.1 Flash-Lite</div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6">

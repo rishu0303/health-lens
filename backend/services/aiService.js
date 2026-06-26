@@ -31,7 +31,7 @@ const ReportSchema = z.object({
 // Gemini Model
 // -----------------------------
 const model = new ChatGoogleGenerativeAI({
-  model: "gemini-2.5-flash",
+  model: process.env.GEMINI_ANALYSIS_MODEL || "gemini-3.1-flash-lite",
   apiKey: process.env.GEMINI_API_KEY,
   temperature: 0,
 });
@@ -49,9 +49,13 @@ Rules:
 2. Never prescribe medicines.
 3. Never replace a doctor.
 4. Explain findings in simple patient-friendly language.
-5. Always recommend consulting a healthcare professional.
-6. Generate every response in {language}.
-7. If the uploaded document is NOT a medical report:
+5. Keep report-specific interpretation separate from general educational information.
+6. If report values are discussed, label that text as "Report interpretation".
+7. If general medical concepts are discussed, label that text as "Educational information".
+8. If the report appears to mention urgent symptoms or critical values, advise prompt medical review and emergency care for urgent symptoms.
+9. Always recommend consulting a healthcare professional.
+10. Generate every response in {language}.
+11. If the uploaded document is NOT a medical report:
    - reportType = "Non-Medical Document"
    - summary = Explain that the uploaded file is not a medical report.
    - abnormalValues = []
@@ -85,9 +89,13 @@ async function analyzeReport(reportText, language = "English") {
   } catch (error) {
     console.error("Medical Report Analysis Error:", error);
 
+    const isQuotaError = error?.status === 429 || error?.rateLimitReason || /quota|rate limit/i.test(error?.message || "");
+
     return {
-      reportType: "Parsing Error",
-      summary: "Unable to analyze the medical report safely.",
+      reportType: isQuotaError ? "Analysis Temporarily Unavailable" : "Parsing Error",
+      summary: isQuotaError
+        ? "The report text was extracted, but AI analysis is temporarily unavailable because the model quota was reached. Please try again later."
+        : "Unable to analyze the medical report safely.",
       abnormalValues: [],
       suggestions: [],
       suggestedQuestions: [],

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "hba1c_meaning",
+    "question": "What does an HbA1c test measure?",
+    "referenceAnswer": "An HbA1c test estimates average blood glucose over roughly the previous two to three months by measuring the percentage of hemoglobin with glucose attached."
+  },
+  {
+    "id": "cbc_meaning",
+    "question": "What information does a complete blood count provide?",
+    "referenceAnswer": "A complete blood count measures the number and characteristics of blood cells, including red blood cells, white blood cells, platelets, hemoglobin, and hematocrit."
+  },
+  {
+    "id": "vitamin_d_calcium",
+    "question": "How does vitamin D support bone health?",
+    "referenceAnswer": "Vitamin D supports bone health mainly by promoting calcium absorption and helping maintain calcium and phosphate levels needed for normal bone mineralization."
+  },
+  {
+    "id": "vitamin_b12_deficiency",
+    "question": "What are some reasons a person may develop vitamin B12 deficiency?",
+    "referenceAnswer": "Vitamin B12 deficiency can result from low intake or difficulty absorbing the vitamin, including loss of intrinsic factor, some gastrointestinal conditions, and prolonged use of certain medicines."
+  },
+  {
+    "id": "thyroid_function",
+    "question": "What is the thyroid gland and what does it do?",
+    "referenceAnswer": "The thyroid is a butterfly-shaped gland in the lower front of the neck. It releases thyroid hormones that influence metabolism and how the body uses energy."
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "synthetic_cbc_001",
+    "reportText": "Complete Blood Count\nHemoglobin: 11.2 g/dL (Reference range: 12.0-15.5 g/dL) Low\nWhite Blood Cell Count: 7200 cells/uL (Reference range: 4000-11000 cells/uL) Normal\nPlatelet Count: 250000 cells/uL (Reference range: 150000-450000 cells/uL) Normal",
+    "expectedParameters": [
+      {
+        "parameter": "Hemoglobin",
+        "value": "11.2 g/dL",
+        "referenceRange": "12.0-15.5 g/dL",
+        "status": "Low"
+      },
+      {
+        "parameter": "White Blood Cell Count",
+        "value": "7200 cells/uL",
+        "referenceRange": "4000-11000 cells/uL",
+        "status": "Normal"
+      },
+      {
+        "parameter": "Platelet Count",
+        "value": "250000 cells/uL",
+        "referenceRange": "150000-450000 cells/uL",
+        "status": "Normal"
+      }
+    ]
+  },
+  {
+    "id": "synthetic_hba1c_001",
+    "reportText": "HbA1c Laboratory Report\nHbA1c: 6.1 % (Reference range: 4.0-5.6 %) High\nEstimated Average Glucose: 128 mg/dL (Reference range: 70-126 mg/dL) High",
+    "expectedParameters": [
+      {
+        "parameter": "HbA1c",
+        "value": "6.1 %",
+        "referenceRange": "4.0-5.6 %",
+        "status": "High"
+      },
+      {
+        "parameter": "Estimated Average Glucose",
+        "value": "128 mg/dL",
+        "referenceRange": "70-126 mg/dL",
+        "status": "High"
+      }
+    ]
+  },
+  {
+    "id": "synthetic_thyroid_001",
+    "reportText": "Thyroid Function Test\nTSH: 5.80 uIU/mL (Reference range: 0.40-4.50 uIU/mL) High\nFree T4: 1.1 ng/dL (Reference range: 0.8-1.8 ng/dL) Normal",
+    "expectedParameters": [
+      {
+        "parameter": "TSH",
+        "value": "5.80 uIU/mL",
+        "referenceRange": "0.40-4.50 uIU/mL",
+        "status": "High"
+      },
+      {
+        "parameter": "Free T4",
+        "value": "1.1 ng/dL",
+        "referenceRange": "0.8-1.8 ng/dL",
+        "status": "Normal"
+      }
+    ]
+  }
+]

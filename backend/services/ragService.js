@@ -417,7 +417,7 @@ async function similaritySearch(query, k = PINECONE_TOP_K) {
   return similaritySearchLocal(query, k);
 }
 
-async function getMultiQueryContext(question) {
+async function getMultiQueryContext(question, k = PINECONE_TOP_K) {
   const prompt = `Generate 3 alternative medical search queries based on this Original Question: ${question}\nReturn each query on a new line only.`;
   const res = await llm.invoke(prompt);
   const content = typeof res.content === "string" ? res.content : res.content[0]?.text || "";
@@ -429,7 +429,7 @@ async function getMultiQueryContext(question) {
     results.push(...(await similaritySearch(query, 3)));
   }
 
-  return dedupeResults(results).slice(0, PINECONE_TOP_K);
+  return dedupeResults(results).slice(0, k);
 }
 
 function formatContext(results) {
@@ -439,10 +439,14 @@ function formatContext(results) {
   }).join("\n\n-----------------\n\n");
 }
 
-async function retrieveKnowledgeContext(question) {
+async function retrieveKnowledgeResults(question, k = PINECONE_TOP_K) {
   if (!ragReady) throw new Error("RAG not initialized");
 
-  const contextResults = await getMultiQueryContext(question);
+  return getMultiQueryContext(question, k);
+}
+
+async function retrieveKnowledgeContext(question) {
+  const contextResults = await retrieveKnowledgeResults(question);
   const context = formatContext(contextResults);
   const citations = contextResults.map((result) => formatCitation(result.metadata, result.score));
 
@@ -502,6 +506,7 @@ module.exports = {
   indexKnowledgeBase,
   askQuestion,
   retrieveKnowledgeContext,
+  retrieveKnowledgeResults,
   isRAGReady,
   getKnowledgeBaseStatus,
 };

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "hba1c_measure",
+    "question": "What does an HbA1c test measure?",
+    "relevantChunks": [
+      {
+        "source": "HbA1c.pdf",
+        "page": 1,
+        "textContains": "average blood glucose"
+      }
+    ]
+  },
+  {
+    "id": "cbc_definition",
+    "question": "What does a complete blood count measure?",
+    "relevantChunks": [
+      {
+        "source": "cbc.pdf",
+        "page": 1,
+        "textContains": "different cells"
+      }
+    ]
+  },
+  {
+    "id": "vitamin_d_calcium",
+    "question": "How does vitamin D support calcium absorption?",
+    "relevantChunks": [
+      {
+        "source": "Vitamin D.pdf",
+        "page": 1,
+        "textContains": "promotes calcium absorption"
+      }
+    ]
+  },
+  {
+    "id": "vitamin_b12_deficiency",
+    "question": "What can cause vitamin B12 deficiency?",
+    "relevantChunks": [
+      {
+        "source": "Vitamin B12.pdf",
+        "page": 2,
+        "textContains": "difficulty absorbing the vitamin"
+      }
+    ]
+  },
+  {
+    "id": "thyroid_gland",
+    "question": "What is the thyroid gland and what does it do?",
+    "relevantChunks": [
+      {
+        "source": "Thyroid.pdf",
+        "page": 1,
+        "textContains": "make thyroid hormones"
+      }
+    ]
+  }
+]

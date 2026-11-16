@@ -1,6 +1,7 @@
 // src/Auth.jsx
 import { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from './api';
 import { Activity, Lock, Mail, User, ArrowRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -25,7 +26,7 @@ export default function Auth({ setToken }) {
       // Determine endpoint based on whether we are logging in or signing up
       // *Make sure these URLs match your backend user routes!*
       const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-      const url = `http://localhost:5003${endpoint}`;
+      const url = `${API_BASE_URL}${endpoint}`;
 
       const response = await axios.post(url, formData);
 

@@ -3,3 +3,13 @@ backend/node_modules/
 backend/.rag-cache/
 node_modules/
 .DS_Store
+flower_classifier_outputs/
+.ipynb_checkpoints/
+
+# Local deployment secrets and uploaded reports
+.env
+.env.*
+!.env.example
+backend/.env.*
+!backend/.env.example
+backend/uploads/

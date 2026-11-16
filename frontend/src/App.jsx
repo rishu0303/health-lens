@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import Auth from './Auth';
+import { API_BASE_URL } from './api';
 import {
   Activity,
   AlertCircle,
@@ -24,7 +25,6 @@ import {
   UploadCloud,
 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5003';
 const DEFAULT_GREETING = 'Hello! I am MedInsight. How can I help you analyze your reports today?';
 
 function formatAnswer(answer, options = {}) {
